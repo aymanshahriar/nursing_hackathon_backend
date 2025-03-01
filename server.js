@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import passport from 'passport';
 import passportConfig from './src/config/passport.js';
 import routes from './src/routes/index.js';
+import setUpSocket from './socketConnection.js';
 
 dotenv.config();
 const app = express();
@@ -66,6 +67,7 @@ app.use(express.json());
 app.use(cors());
 
 const server = createServer(app);
+setUpSocket(server)
 
 // Basic route
 app.get('/', (req, res) => {
