@@ -3,7 +3,6 @@ import db from '../models/index.js';
 import { Op } from 'sequelize';
 const { User } = db;
 
-
 class UserController {
 
   async create(req, res) {

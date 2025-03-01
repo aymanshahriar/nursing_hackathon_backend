@@ -56,23 +56,3 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`Server running on port ${port}`.green);
   });
 }
-
-const PORT = process.env.PORT || 3001;
-
-import { createServer } from 'node:http';
-
-// Middleware
-app.use(express.json());
-app.use(cors());
-
-const server = createServer(app);
-
-// Basic route
-app.get('/', (req, res) => {
-  res.send('Hello, Express!');
-});
-
-// If the PORT environment variable is not set in the computer, then use port 3000 by default
-server.listen(process.env.PORT || 3001, () => {
-  console.log(`api is running on port ${process.env.PORT || 3001}`);
-});
