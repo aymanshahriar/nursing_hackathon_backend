@@ -2,8 +2,10 @@ import express, { json, urlencoded } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import passport from 'passport';
+import { createServer } from 'node:http';
 import passportConfig from './src/config/passport.js';
 import routes from './src/routes/index.js';
+import setUpSocket from './socketConnection.js';
 
 dotenv.config();
 const app = express();
@@ -51,8 +53,13 @@ app.use((req, res, next) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
+// In order to use the messaging functionality, we need to wrap the app with a server object
+const server = createServer(app);
+// Enable the messaging functionality in the backend
+setUpSocket(server)
+
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
+  server.listen(port, () => {
     console.log(`Server running on port ${port}`.green);
   });
 }
