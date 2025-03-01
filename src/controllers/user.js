@@ -1,7 +1,8 @@
 import Authenticate from '../utils/Authenticate.js';
 import db from '../models/index.js';
+import { Op } from 'sequelize';
 const { User } = db;
-const { Op } = require('sequelize');
+
 
 class UserController {
 

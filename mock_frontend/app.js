@@ -6,7 +6,7 @@ const username = localStorage.getItem('username');
 socket.auth = { username: username };
 socket.connect();
 
-console.log(username);
+//console.log(username);
 
 socket.on('message', text => {
 
