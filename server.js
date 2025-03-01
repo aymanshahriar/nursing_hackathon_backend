@@ -58,8 +58,7 @@ const server = createServer(app);
 // Enable the messaging functionality in the backend
 setUpSocket(server)
 
-if (process.env.NODE_ENV !== 'test') {
-  server.listen(port, () => {
-    console.log(`Server running on port ${port}`.green);
-  });
-}
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+

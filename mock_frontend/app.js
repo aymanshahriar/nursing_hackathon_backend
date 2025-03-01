@@ -1,7 +1,7 @@
 
 // autoConnect is set to false so the connection is not established right away. 
 // We will manually call socket.connect() once we specify the username.
-const socket = io('ws://localhost:3001', { autoConnect: false });
+const socket = io('ws://localhost:8000', { autoConnect: false });
 const id = localStorage.getItem('id');
 socket.auth = { user_id: id };
 socket.connect();
