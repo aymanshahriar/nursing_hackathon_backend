@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import axios from "axios";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-import { db } from "../config/databaseConnection.js";
+import { db } from "./src/utils/databaseConnection.js";
 import { OPENAI_API_KEY, GEMINI_API_KEY } from "../config/environmentVariables.js";
 
 
@@ -20,8 +20,9 @@ const bioAttributes = [
 
 
 // Function to fetch user data from usertable and bio table using callbacks ////////////////////////////// MIGHT NEED TO CHANGE THE QUERY
-const fetchUsersData = (callback) => {
-  const query = `
+const fetchUsersData = async () => {
+  try {
+    const query = `
       SELECT User.id as UserId, ${bioAttributes
         .map((attr) => `User.${attr}`)
         .join(", ")}, 
@@ -36,22 +37,19 @@ const fetchUsersData = (callback) => {
       GROUP BY User.id;
     `;
 
+    const [results] = await db.execute(query);
 
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching user data:", err);
-      return callback(err);
-    }
-    // Format the results as needed
-    const formattedResults = results.map((row) => ({
+    return results.map((row) => ({
       userId: row.UserId,
       bioAttributes: bioAttributes.reduce((acc, attr) => {
         acc[attr] = row[attr];
         return acc;
       }, {}),
     }));
-    callback(null, formattedResults);
-  });
+  } catch (err) {
+    console.error("Error fetching user data:", err);
+    throw err;
+  }
 };
 
 
@@ -168,32 +166,19 @@ const matchUsersGemini = async (usersData) => {
 
 
 
-// Function to match users using available API
+// Function to match users using OpenAI, with Gemini as a fallback
 const matchUsers = async () => {
   try {
-    const usersData = await new Promise((resolve, reject) => {
-      fetchUsersData((err, data) => {
-        if (err) return reject(err);
-        resolve(data);
-      });
-    });
-    if (usersData.length <= 1) {
-      return; // Do nothing if usersData has 1 or fewer rows
-    }
+    const usersData = await fetchUsersData();
+    if (usersData.length <= 1) return;
+
     return await matchUsersOpenAI(usersData);
   } catch (error) {
     console.log("Falling back to Gemini API");
     try {
-      const usersData = await new Promise((resolve, reject) => {
-        fetchUsersData((err, data) => {
-          if (err) return reject(err);
-          resolve(data);
-        });
-      });
+      const usersData = await fetchUsersData();
+      if (usersData.length <= 1) return;
 
-      if (usersData.length <= 1) {
-        return; // Do nothing if usersData has 1 or fewer rows
-      }
       return await matchUsersGemini(usersData);
     } catch (err) {
       console.error("Error fetching user data for Gemini API:", err);
@@ -221,44 +206,22 @@ const getCurrentDateTimeAsString = () => {
   return dateTime;
 };
 
+// Function to insert matches into the database
 const insertMatchesIntoDB = async (matches) => {
-  const insertQuery = `INSERT INTO user_match (patient_id, peer_supporter_id, match_time, still_matched) VALUES (?, ?, ?, ?)`;
-  const currentTime = getCurrentDateTimeAsString();
+  try {
+    const insertQuery = `INSERT INTO user_match (patient_id, peer_supporter_id, match_time, still_matched) VALUES (?, ?, ?, ?)`;
+    const currentTime = getCurrentDateTimeAsString();
 
-  // Map each match into a pair of queries (original and swapped)
-  const insertPromises = matches.flatMap((match) => [
-    new Promise((resolve, reject) => {
-      db.query(
-        insertQuery,
-        [match.userId, match.matchUserId, currentTime, true],
-        (err, results) => {
-          if (err) {
-            console.error("Error inserting match:", err);
-            reject(err);
-          } else {
-            resolve(results);
-          }
-        }
-      );
-    }),
-    new Promise((resolve, reject) => {
-      db.query(
-        insertQuery,
-        [match.matchUserId, match.userId, currentTime, match.reason],
-        (err, results) => {
-          if (err) {
-            console.error("Error inserting swapped match:", err);
-            reject(err);
-          } else {
-            resolve(results);
-          }
-        }
-      );
-    }),
-  ]);
+    const insertPromises = matches.flatMap((match) => [
+      db.execute(insertQuery, [match.userId, match.matchUserId, currentTime, true]),
+      db.execute(insertQuery, [match.matchUserId, match.userId, currentTime, match.reason]),
+    ]);
 
-  // Wait for all insertions to complete
-  await Promise.all(insertPromises);
+    await Promise.all(insertPromises);
+  } catch (error) {
+    console.error("Error inserting matches into DB:", error);
+    throw error;
+  }
 };
 
 // Call the matchUsers function and then insert the matches into the database
