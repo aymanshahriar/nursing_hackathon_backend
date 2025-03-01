@@ -2,11 +2,11 @@
 // autoConnect is set to false so the connection is not established right away. 
 // We will manually call socket.connect() once we specify the username.
 const socket = io('ws://localhost:3001', { autoConnect: false });
-const username = localStorage.getItem('username');
-socket.auth = { username: username };
+const id = localStorage.getItem('id');
+socket.auth = { user_id: id };
 socket.connect();
 
-console.log(username);
+console.log(id);
 
 socket.on('message', text => {
 
@@ -19,8 +19,9 @@ socket.on('message', text => {
 document.querySelector('button').onclick = () => {
     
     const messageContent = document.getElementById('message').value;
-    const senderUsername = document.getElementById('senderUsername').value;
-    const receiverUsername = document.getElementById('receiverUsername').value;
-    socket.emit('message', {"senderUsername": senderUsername, "receiverUsername": receiverUsername, "content": messageContent})
+    const senderId = document.getElementById('senderId').value;
+    const receiverId = document.getElementById('receiverId').value;
+    console.log(senderId, receiverId)
+    socket.emit('message', {"senderId": senderId, "receiverId": receiverId, "content": messageContent})
     
 }
